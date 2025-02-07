@@ -264,7 +264,10 @@ cookie_pages = [
     "Ratings Distribution", 
     "Summary"
 ]
-cookies = CookieController('visited')
+cookies = CookieController()
+if not cookies.get('visited_tabs'):
+    cookies.set('visited_tabs', False)
+     
 if cookies.get('visited_tabs') == False:
     cookies.set('visited_tabs', True)
     for page in cookie_pages:
