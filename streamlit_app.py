@@ -139,7 +139,10 @@ def word_cloud_page(data):
     fig = plt.figure()
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis('off')
+    plt.subplots_adjust(left=0, right=5, top=5, bottom=0)
+    fig.patch.set_facecolor((0.055,0.066,0.09,1))
     st.pyplot(fig)
+    st.caption("Most common words in titles for Netflix movies and TV shows.")
     
 ######################################################################################
     
@@ -163,21 +166,26 @@ def rating_dist_bars(data):
     
     colors = ['goldenrod' if 'tv' in rating.lower() else 'cornflowerblue' for rating in rating_counts.index]
     sns.barplot(x=rating_counts.values, y=rating_counts.index, palette=colors)
-    plt.title('Distribution of Content Ratings', fontsize=20)
-    plt.xticks(None)
-    plt.yticks(fontsize=12)
+    
+    plt.title('Distribution of Content Ratings', fontsize=20, color='white')
+    plt.xticks(color='white')
+    plt.yticks(fontsize=12, color='white')
     plt.ylabel('')
     plt.tight_layout()
     plt.annotate(
         "Adult rated content dominates",
         xy=(60, 10),
         xytext=(800, 9),
+        color='white',
+        fontsize=16
     )
     
     movie_patch = mpatches.Patch(color='cornflowerblue', label='Movie Ratings')
     tv_patch = mpatches.Patch(color='goldenrod', label='TV Ratings')
-    plt.legend(handles=[movie_patch, tv_patch], loc='upper right')
+    plt.legend(handles=[movie_patch, tv_patch], loc='upper right', facecolor=(0.055, 0.066, 0.09, 1), edgecolor='white', labelcolor='white')
     
+    fig.patch.set_facecolor((0.055, 0.066, 0.09, 1))
+    ax.set_facecolor((0.055, 0.066, 0.09, 1))
     st.pyplot(fig)
 
 def content_type_trends(data):
@@ -186,23 +194,35 @@ def content_type_trends(data):
     
     yearly_content = data_filtered.groupby(['release_year', 'type']).size().unstack(fill_value=0)
     
-    fig, ax = plt.subplots(figsize=(12,6))
+    fig, ax = plt.subplots(figsize=(10, 5))
     for content_type in yearly_content.columns:
         ax.plot(yearly_content.index, yearly_content[content_type], label=content_type)
     
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     
-    ax.set_title('Content Releases Over Time', fontsize=16)
-    ax.set_xlabel('Release Year', fontsize=14)
-    ax.set_ylabel('Number of Titles Added', fontsize=14)
-    ax.legend(title="Content Type")
+    ax.spines['bottom'].set_color('white')
+    ax.spines['left'].set_color('white')
+    
+    ax.set_title('Content Releases Over Time', fontsize=20, color='white')
+    ax.set_xlabel('Release Year', fontsize=14, color='white')
+    ax.set_ylabel('Number of Titles Added', fontsize=14, color='white')
+    ax.legend(facecolor=(0.055, 0.066, 0.09, 1), edgecolor='white', labelcolor='white')
+    
+    plt.xticks(color='white')
+    plt.yticks(color='white')
     plt.tight_layout()
     plt.annotate(
-        "Adult rated content dominates",
-        xy=(60, 10),
-        xytext=(800, 9),
+        "Movies seem to be getting less popular to \n make and/or to acquire for Netflix",
+        xy=(1950, 250),
+        xytext=(1950, 250),
+        color='white',
+        fontsize=16
     )
+    
+    fig.patch.set_facecolor((0.055, 0.066, 0.09, 1))
+    ax.set_facecolor((0.055, 0.066, 0.09, 1))
+    
     st.pyplot(fig)
     
 def conclusion(data):
@@ -212,9 +232,9 @@ def conclusion(data):
     st.markdown("")
     st.markdown("")
     st.code("""
-                There a few key takeaways after visualizing the Netflix Data.  
+                There are a few key takeaways after visualizing the Netflix Data.  
                 
-                First is that love must sell. It is by far the most common title in all of the movies and tv shows analyzed. Stories involving a girl, love, and life appear to be most prominent.  
+                First is that love must sell. It is by far the most common title in all of the movies and tv shows analyzed. Stories involving a girl and love appear to be most prominent.  
                 Second, movies are getting less and less releases over time. This also correlates with Netflix not acquiring as many movies. There are a few possible reasons for this. It
                 could be that the newly more popular extended story tv shows (like Mandalorian or Breaking Bad) are succesful. It could be that tv shows work better with Netflix's subscription 
                 model, as more viewers will be on the site for longer if they need to come back to finish they show. Or it could be a combination of reasons.  
