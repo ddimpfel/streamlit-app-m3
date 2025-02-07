@@ -291,12 +291,17 @@ st.markdown("""
             z-index: 50;
             text-decoration: none !important;
             font-size: 30px;
+            border-right-style: solid;
+            border-right-color: #601600;
+            padding-right: 32px;
+            padding-top: 17px;
         }
         a.navbar-brand {
             color: white !important;
             margin-right: 1rem;
             z-index: 50;
             font-size: 40px;
+            padding-top: 8px;
         }
         .nav-link:hover {
             opacity: 0.8;
@@ -330,7 +335,6 @@ def create_navbar():
         <nav class="custom-navbar">
           <div class="container-fluid">
             <a class="navbar-brand nav-link" href="?page=Raw Data" target="_self">Netflix Data Explorer</a>
-            <a class="nav-link" href="?page=Raw Data" target="_self">Raw Data</a>
             <a class="nav-link" href="?page=Word Cloud" target="_self">Word Cloud</a>
             <a class="nav-link" href="?page=Content Over Time" target="_self">Content Over Time</a>
             <a class="nav-link" href="?page=Ratings Distribution" target="_self">Ratings Distribution</a>
