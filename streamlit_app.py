@@ -1,5 +1,6 @@
 import time
 import streamlit as st
+from streamlit_cookies_controller import CookieController
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.patches as mpatches
@@ -17,9 +18,8 @@ def parse_search_terms(search_input):
     # Split by space but preserve quoted phrases
     current_term = []
     in_quotes = False
-    i = 0
     
-    while i < len(search_input):
+    for i in range(len(search_input)):
         if search_input[i] == '"':
             in_quotes = not in_quotes
             if not in_quotes and current_term:
@@ -31,15 +31,14 @@ def parse_search_terms(search_input):
                 current_term = []
         else:
             current_term.append(search_input[i])
-        i += 1
     
     if current_term:
         terms.append(''.join(current_term))
-    
+
     # Process terms for column-specific searches
     final_terms = []
-    i = 0
-    while i < len(terms):
+    
+    for i in range(len(terms)):
         term = terms[i]
         if ':' in term:
             col = term.split(':', 1)[0].strip().lower()
@@ -53,11 +52,10 @@ def parse_search_terms(search_input):
             column_searches[col] = value.strip()
         else:
             final_terms.append(term)
-        i += 1
     
     return final_terms, column_searches
 
-def apply_search_filters(data, search_input):
+def apply_search_filters(data, search_input, data_filters):
     """Apply both general and column-specific searches to the dataframe"""
     if not search_input.strip():
         return data
@@ -66,20 +64,19 @@ def apply_search_filters(data, search_input):
     filtered_data = data.copy()
     
     # Apply column-specific searches
-    if len(column_searches) != 0:
-        for col, value in column_searches.items():
-            matching_cols = [c for c in filtered_data.columns if c.lower() == col.lower()]
-            if matching_cols:
-                filtered_data = filtered_data[
-                    filtered_data[matching_cols[0]].astype(str).str.contains(value, case=False)
-                ]
-    else: # Apply general search terms
-        for term in terms:
-            if term:  # Skip empty terms
-                term_filter = filtered_data.astype(str).apply(
-                    lambda x: x.str.contains(term, case=False)
-                ).any(axis=1)
-                filtered_data = filtered_data[term_filter]
+    for col, value in column_searches.items():
+        matching_cols = [c for c in filtered_data.columns if c.lower() == col.lower()]
+        if matching_cols:
+            filtered_data = filtered_data[
+                filtered_data[matching_cols[0]].astype(str).str.contains(value, case=False)
+            ]
+                
+    for term in terms:
+        if term:  # Skip empty terms
+            term_filter = filtered_data.astype(str).apply(
+                lambda x: x.str.contains(term, case=False)
+            ).any(axis=1)
+            filtered_data = filtered_data[term_filter]
     
     return filtered_data
 
@@ -93,24 +90,28 @@ def data_page(data):
     # Sidebar
     st.sidebar.title('Data Filters')
     columns = data.columns.tolist()
-    selected_columns = []
+    data_filters = []
 
     for col in columns:
         if st.sidebar.checkbox(col, value=True):
-            selected_columns.append(col)
-
+            data_filters.append(col)
+    
+    st.markdown("")
+    st.markdown("")
     # Search
     search_input = st.text_input(
         'Search for specific titles, filter movies by rating, display only what you want, or just explore the data!',
-        placeholder='Add a specific tag to search by column -> Director: Tarantino. And/or surround the search in "quotes" to search specific phrases'
+        placeholder='Add a specific tag to search by column -> Director: Tarantino. And/or surround the search in "quotes" to search specific phrases. (e.g. Director: "Quentin Tarantino")'
     )
 
     if search_input:
-        data = apply_search_filters(data, search_input)
+        data = apply_search_filters(data, search_input, data_filters)
+    # Only keep selected
+    data = data[data_filters]
         
     # Table
     if not data.empty:
-        st.dataframe(data, hide_index=True, height=600)
+        st.dataframe(data, hide_index=True, height=550)
         st.write(f"Found {len(data)} matches")
     else:
         st.warning("No matches found")
@@ -256,6 +257,32 @@ st.set_page_config(
     layout="wide"
 )
 
+cookie_pages = [
+    "Raw Data", 
+    "Word Cloud", 
+    "Content Over Time", 
+    "Ratings Distribution", 
+    "Summary"
+]
+cookies = CookieController('visited')
+if cookies.get('visited_tabs') == False:
+    cookies.set('visited_tabs', True)
+    for page in cookie_pages:
+        cookies.set(page, False)
+
+if 'visited_pages' not in st.session_state:
+    st.session_state.visited_tabs = cookies.getAll()
+
+# Use query parameters to determine the current page
+query_params = st.query_params
+if "page" in query_params:
+    current_page = query_params["page"]
+else:
+    current_page = "Raw Data"
+st.session_state.current_page = current_page
+
+if not st.session_state.visited_tabs[current_page]:
+    cookies.set(current_page, True)
 
 # Thank you dataprofessor, https://github.com/dataprofessor/streamlit_navbar/blob/main/app_navbar.py
 # for the navbar inspiration below. And thanks Claude for making it really easy to do CSS... especially inline string css.
@@ -296,6 +323,18 @@ st.markdown("""
             padding-right: 32px;
             padding-top: 17px;
         }
+        .nav-link.visited {
+            color: gray !important;
+            margin-right: 1rem;
+            transition: opacity 0.3s;
+            z-index: 50;
+            text-decoration: none !important;
+            font-size: 30px;
+            border-right-style: solid;
+            border-right-color: #601600;
+            padding-right: 32px;
+            padding-top: 17px;
+        }
         a.navbar-brand {
             color: white !important;
             margin-right: 1rem;
@@ -319,7 +358,7 @@ st.markdown("""
             position: fixed;
             top: 12px !important;
             right: 0 !important;
-            z-index: 21 !important; /* Slightly above the navbar so it remains clickable */
+            z-index: 21 !important;
         }
         [data-testid="stSidebar"] {
             z-index: 10 !important;
@@ -330,29 +369,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def create_navbar():
-    nav_html = """
-        <nav class="custom-navbar">
-          <div class="container-fluid">
-            <a class="navbar-brand nav-link" href="?page=Raw Data" target="_self">Netflix Data Explorer</a>
-            <a class="nav-link" href="?page=Word Cloud" target="_self">Word Cloud</a>
-            <a class="nav-link" href="?page=Content Over Time" target="_self">Content Over Time</a>
-            <a class="nav-link" href="?page=Ratings Distribution" target="_self">Ratings Distribution</a>
-            <a class="nav-link" href="?page=Summary" target="_self">Summary</a>
-          </div>
-        </nav>
-    """
+def create_navbar(pages):
+    nav_html = '<nav class="custom-navbar"><div class="container-fluid">'
+    nav_html += '<a class="navbar-brand nav-link" href="?page=Raw Data" target="_self">Netflix Data Explorer</a>'
+    for page in pages:
+        visited_class = "visited" if st.session_state.visited_tabs[page] == True else ""
+        nav_html += f'<a class="navbar-brand nav-link {visited_class}" href="?page={page}" target="_self">{page}</a>'
+    nav_html += '</div></nav>'
     st.markdown(nav_html, unsafe_allow_html=True)
-    
-# Use query parameters to determine the current page
-query_params = st.query_params
-if "page" in query_params:
-    current_page = query_params["page"]
-else:
-    current_page = "Raw Data"
-st.session_state.current_page = current_page
 
-create_navbar()
+pages_names = [
+    "Word Cloud", 
+    "Content Over Time", 
+    "Ratings Distribution", 
+    "Summary"
+]
+create_navbar(pages_names)
 
 # Wrap main content in a div for proper spacing
 st.markdown('<div class="main">', unsafe_allow_html=True)
