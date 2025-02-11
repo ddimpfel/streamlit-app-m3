@@ -376,8 +376,12 @@ def create_navbar(pages):
     nav_html = '<nav class="custom-navbar"><div class="container-fluid">'
     nav_html += '<a class="navbar-brand nav-link" href="?page=Raw Data" target="_self">Netflix Data Explorer</a>'
     for page in pages:
-        visited_class = "visited" if st.session_state.visited_tabs[page] == True else ""
-        nav_html += f'<a class="navbar-brand nav-link {visited_class}" href="?page={page}" target="_self">{page}</a>'
+        try:
+            visited_class = "visited" if st.session_state.visited_tabs[page] == True else ""
+            nav_html += f'<a class="navbar-brand nav-link {visited_class}" href="?page={page}" target="_self">{page}</a>'
+        except KeyError:
+            cookies.remove('visited_tabs')
+            st.rerun()
     nav_html += '</div></nav>'
     st.markdown(nav_html, unsafe_allow_html=True)
 
